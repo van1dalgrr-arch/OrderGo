@@ -18,7 +18,6 @@ type Order struct {
 }
 
 func Database() *sql.DB {
-
 	err := godotenv.Load()
 	if err != nil {
 		log.Fatal("Error loading .env file:", err)
@@ -39,7 +38,6 @@ func Database() *sql.DB {
 	}
 
 	err = db.Ping()
-
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -47,15 +45,25 @@ func Database() *sql.DB {
 	return db
 }
 
-func getOrder(c *gin.Context) {
-	id := c.Param("id")
+func GetOrder(db *sql.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		id := c.Param("id")
 
-	// TODO: get order from database
-	_ = id
+		var order Order
 
-	c.JSON(404, gin.H{
-		"error": "order not found",
-	})
+		err := db.QueryRow(
+			"SELECT id, user_id, status FROM orders WHERE id = $1",
+			id,
+		).Scan(&order.ID, &order.UserID, &order.Status)
+		if err != nil {
+			c.JSON(404, gin.H{
+				"error": "order not found",
+			})
+			return
+		}
+
+		c.JSON(200, order)
+	}
 }
 
 func deleteOrder(c *gin.Context) {
@@ -69,25 +77,35 @@ func deleteOrder(c *gin.Context) {
 	})
 }
 
-func createOrder(c *gin.Context) {
-	var order Order
+func CreateOrder(db *sql.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var order Order
 
-	if err := c.ShouldBindJSON(&order); err != nil {
-		c.JSON(400, gin.H{
-			"error": err.Error(),
-		})
-		return
+		if err := c.ShouldBindJSON(&order); err != nil {
+			c.JSON(400, gin.H{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		_, err := db.Exec(
+			"INSERT INTO orders (id, user_id, status) VALUES ($1, $2, $3)",
+			order.ID,
+			order.UserID,
+			order.Status,
+		)
+
+		if err != nil {
+			c.JSON(500, gin.H{
+				"error": fmt.Errorf("failed to create order: %w", err),
+			})
+		} else {
+			c.JSON(201, gin.H{
+				"message": "order has been created",
+			})
+			return
+		}
 	}
-
-	// TODO: save order to database
-
-	c.JSON(201, order)
-}
-
-func health(c *gin.Context) {
-	c.JSON(200, gin.H{
-		"status": "ok",
-	})
 }
 
 func main() {
@@ -98,9 +116,8 @@ func main() {
 
 	r := gin.Default()
 
-	r.GET("/health", health)
-	r.POST("/orders", createOrder)
-	r.GET("/orders/:id", getOrder)
+	r.POST("/orders", CreateOrder(db))
+	r.GET("/orders/:id", GetOrder(db))
 	r.DELETE("/orders/:id", deleteOrder)
 
 	if err := r.Run(fmt.Sprintf(":%d", config.Server.Port)); err != nil {
