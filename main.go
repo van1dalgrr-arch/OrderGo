@@ -1,15 +1,50 @@
 package main
 
 import (
+	"database/sql"
+	"fmt"
 	"log"
+	"os"
 
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
+	_ "github.com/lib/pq"
 )
 
 type Order struct {
 	ID     string `json:"id"`
 	UserID string `json:"user_id"`
 	Status string `json:"status"`
+}
+
+func Database() *sql.DB {
+
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file:", err)
+	}
+
+	dsn := fmt.Sprintf(
+		"postgres://%s:%s@%s:%s/%s?sslmode=disable",
+		os.Getenv("DB_USER"),
+		os.Getenv("DB_PASSWORD"),
+		os.Getenv("DB_HOST"),
+		os.Getenv("DB_PORT"),
+		os.Getenv("DB_NAME"),
+	)
+
+	db, err := sql.Open("postgres", dsn)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = db.Ping()
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return db
 }
 
 func getOrder(c *gin.Context) {
@@ -56,7 +91,10 @@ func health(c *gin.Context) {
 }
 
 func main() {
-	// TODO: connect to database
+	config := LoadConfig()
+
+	db := Database()
+	defer db.Close()
 
 	r := gin.Default()
 
@@ -65,7 +103,7 @@ func main() {
 	r.GET("/orders/:id", getOrder)
 	r.DELETE("/orders/:id", deleteOrder)
 
-	if err := r.Run(":8080"); err != nil {
+	if err := r.Run(fmt.Sprintf(":%d", config.Server.Port)); err != nil {
 		log.Fatal(err)
 	}
 }
