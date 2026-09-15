@@ -17,6 +17,41 @@ type Order struct {
 	Status string `json:"status"`
 }
 
+type UpdateOrderStatusRequest struct {
+	Status string `json:"status"`
+}
+
+func UpdateOrderStatus(db *sql.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var id = c.Param("id")
+
+		var req UpdateOrderStatusRequest
+
+		if err := c.ShouldBindJSON(&req); err != nil {
+			c.JSON(400, gin.H{
+				"error": fmt.Errorf("failed to bind JSON: %w", err),
+			})
+			return
+		}
+
+		_, err := db.Exec(
+			"UPDATE orders SET status = $1 WHERE id = $2",
+			req.Status, id,
+		)
+
+		if err != nil {
+			c.JSON(500, gin.H{
+				"error": fmt.Errorf("failed to update order status: %w", err),
+			})
+			return
+		}
+
+		c.JSON(200, gin.H{
+			"message": "order status updated",
+		})
+	}
+}
+
 func Database() *sql.DB {
 	err := godotenv.Load()
 	if err != nil {
@@ -66,15 +101,26 @@ func GetOrder(db *sql.DB) gin.HandlerFunc {
 	}
 }
 
-func deleteOrder(c *gin.Context) {
-	id := c.Param("id")
+func DeleteOrder(db *sql.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		id := c.Param("id")
 
-	// TODO: delete order from database
-	_ = id
+		_, err := db.Exec(
+			"DELETE FROM orders WHERE id = $1",
+			id,
+		)
 
-	c.JSON(200, gin.H{
-		"message": "order has been deleted",
-	})
+		if err != nil {
+			c.JSON(500, gin.H{
+				"error": fmt.Errorf("failed to delete order: %w", err),
+			})
+			return
+		}
+
+		c.JSON(200, gin.H{
+			"message": "order has been deleted",
+		})
+	}
 }
 
 func CreateOrder(db *sql.DB) gin.HandlerFunc {
@@ -118,7 +164,8 @@ func main() {
 
 	r.POST("/orders", CreateOrder(db))
 	r.GET("/orders/:id", GetOrder(db))
-	r.DELETE("/orders/:id", deleteOrder)
+	r.DELETE("/orders/:id", DeleteOrder(db))
+	r.PATCH("/orders/:id/status", UpdateOrderStatus(db))
 
 	if err := r.Run(fmt.Sprintf(":%d", config.Server.Port)); err != nil {
 		log.Fatal(err)

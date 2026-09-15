@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"os"
 
 	"gopkg.in/yaml.v3"
@@ -32,7 +33,7 @@ func LoadConfig() Config {
 
 	err = yaml.Unmarshal(data, &config)
 	if err != nil {
-		panic(err)
+		log.Println("failed to unmarshal config:", err)
 	}
 
 	return config
