@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -90,9 +91,17 @@ func GetOrder(db *sql.DB) gin.HandlerFunc {
 			"SELECT id, user_id, status FROM orders WHERE id = $1",
 			id,
 		).Scan(&order.ID, &order.UserID, &order.Status)
-		if err != nil {
+
+		if errors.Is(err, sql.ErrNoRows) {
 			c.JSON(404, gin.H{
 				"error": "order not found",
+			})
+			return
+		}
+
+		if err != nil {
+			c.JSON(500, gin.H{
+				"error": fmt.Errorf("failed to get order: %w", err),
 			})
 			return
 		}
