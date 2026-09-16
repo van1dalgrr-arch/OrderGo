@@ -7,7 +7,7 @@ RUN go mod download
 
 COPY . .
 
-RUN go build -o order-api .
+RUN go build -o order-api ./cmd/internal/models
 
 FROM debian:bookworm-slim
 
