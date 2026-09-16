@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
-	_ "github.com/lib/pq"
 )
 
 type Order struct {
@@ -131,6 +131,73 @@ func GetOrder(db *sql.DB) gin.HandlerFunc {
 	}
 }
 
+func GetOrders(db *sql.DB) gin.HandlerFunc {
+
+	return func(c *gin.Context) {
+		page := c.Query("page")
+		limit := c.Query("limit")
+		if page == "" {
+			page = "1"
+		}
+		if limit == "" {
+			limit = "10"
+		}
+		pageInt, err := strconv.Atoi(page)
+		if err != nil || pageInt <= 0 {
+			c.JSON(400, gin.H{
+				"error": "invalid page",
+			})
+			return
+		}
+		limitInt, err := strconv.Atoi(limit)
+		if err != nil || limitInt <= 0 {
+			c.JSON(400, gin.H{
+				"error": "invalid limit",
+			})
+			return
+		}
+		offset := (pageInt - 1) * limitInt
+		rows, err := db.Query(
+			"SELECT id, user_id, status FROM orders ORDER BY id LIMIT $1 OFFSET $2",
+			limitInt,
+			offset,
+		)
+		if err != nil {
+			c.JSON(500, gin.H{
+				"error": fmt.Errorf("failed to get orders: %w", err),
+			})
+			return
+		}
+		defer rows.Close()
+		var orders []Order
+		for rows.Next() {
+			var order Order
+			if err := rows.Scan(
+				&order.ID,
+				&order.UserID,
+				&order.Status,
+			); err != nil {
+				c.JSON(500, gin.H{
+					"error": fmt.Errorf("failed to scan order: %w", err),
+				})
+				return
+			}
+			orders = append(orders, order)
+		}
+		if err := rows.Err(); err != nil {
+			c.JSON(500, gin.H{
+				"error": fmt.Errorf("failed to iterate orders: %w", err),
+			})
+			return
+		}
+		c.JSON(200, gin.H{
+			"orders": orders,
+			"page":   pageInt,
+			"limit":  limitInt,
+		})
+	}
+
+}
 func DeleteOrder(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		id := c.Param("id")
@@ -209,6 +276,7 @@ func main() {
 
 	r.POST("/orders", CreateOrder(db))
 	r.GET("/orders/:id", GetOrder(db))
+	r.GET("/orders", GetOrders(db))
 	r.DELETE("/orders/:id", DeleteOrder(db))
 	r.PATCH("/orders/:id/status", UpdateOrderStatus(db))
 
