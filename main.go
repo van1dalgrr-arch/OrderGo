@@ -22,12 +22,22 @@ type UpdateOrderStatusRequest struct {
 	Status string `json:"status"`
 }
 
+func validStatus(status string) bool {
+	switch status {
+	case "pending", "paid", "processing", "shipped", "completed", "cancelled":
+		return true
+	default:
+		return false
+	}
+}
+
 func UpdateOrderStatus(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var id = c.Param("id")
 
 		var req UpdateOrderStatusRequest
 
+		// Parse the JSON request body.
 		if err := c.ShouldBindJSON(&req); err != nil {
 			c.JSON(400, gin.H{
 				"error": fmt.Errorf("failed to bind JSON: %w", err),
@@ -35,6 +45,14 @@ func UpdateOrderStatus(db *sql.DB) gin.HandlerFunc {
 			return
 		}
 
+		if !validStatus(req.Status) {
+			c.JSON(400, gin.H{
+				"error": "invalid status",
+			})
+			return
+		}
+
+		// Update the order status using the ID from the URL.
 		_, err := db.Exec(
 			"UPDATE orders SET status = $1 WHERE id = $2",
 			req.Status, id,
@@ -59,6 +77,7 @@ func Database() *sql.DB {
 		log.Fatal("Error loading .env file:", err)
 	}
 
+	// Build the PostgreSQL connection string from environment variables.
 	dsn := fmt.Sprintf(
 		"postgres://%s:%s@%s:%s/%s?sslmode=disable",
 		os.Getenv("DB_USER"),
@@ -73,6 +92,7 @@ func Database() *sql.DB {
 		log.Fatal(err)
 	}
 
+	// Check that the database is actually reachable.
 	err = db.Ping()
 	if err != nil {
 		log.Fatal(err)
@@ -81,6 +101,7 @@ func Database() *sql.DB {
 	return db
 }
 
+// GetOrder returns an order by its ID.
 func GetOrder(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		id := c.Param("id")
@@ -143,6 +164,20 @@ func CreateOrder(db *sql.DB) gin.HandlerFunc {
 			return
 		}
 
+		if order.ID == "" || order.UserID == "" || order.Status == "" {
+			c.JSON(400, gin.H{
+				"error": "id, user_id, and status are required",
+			})
+			return
+		}
+
+		if !validStatus(order.Status) {
+			c.JSON(400, gin.H{
+				"error": "invalid status",
+			})
+			return
+		}
+
 		_, err := db.Exec(
 			"INSERT INTO orders (id, user_id, status) VALUES ($1, $2, $3)",
 			order.ID,
@@ -154,18 +189,19 @@ func CreateOrder(db *sql.DB) gin.HandlerFunc {
 			c.JSON(500, gin.H{
 				"error": fmt.Errorf("failed to create order: %w", err),
 			})
-		} else {
-			c.JSON(201, gin.H{
-				"message": "order has been created",
-			})
 			return
 		}
+
+		c.JSON(201, gin.H{
+			"message": "order has been created",
+		})
 	}
 }
 
 func main() {
 	config := LoadConfig()
 
+	// Open the PostgreSQL connection.
 	db := Database()
 	defer db.Close()
 
