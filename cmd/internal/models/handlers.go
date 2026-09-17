@@ -42,7 +42,7 @@ func CreateOrder(db *sql.DB) gin.HandlerFunc {
 		)
 		if err != nil {
 			c.JSON(500, gin.H{
-				"error": fmt.Errorf("failed to create order: %w", err),
+				"error": fmt.Errorf("failed to create order: %w", err).Error(),
 			})
 			return
 		}
