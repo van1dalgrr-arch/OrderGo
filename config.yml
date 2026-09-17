@@ -6,3 +6,7 @@ db:
   port: 5432
   user: postgres
   name: orderapi
+
+redis:
+  host: localhost
+  port: 6379

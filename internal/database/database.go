@@ -1,20 +1,20 @@
-package main
+package database
 
 import (
 	"database/sql"
-	"fmt"
-	"log"
-	"os"
-	"strconv"
 
+	"fmt"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
+	"log"
+	"orderApi/internal/config"
+	"os"
+	"strconv"
 )
 
-func Database() *sql.DB {
+func Database(cfg config.Config) *sql.DB {
 	_ = godotenv.Load()
-	config := LoadConfig()
-	port := config.DB.Port
+	port := cfg.DB.Port
 	if envPort := os.Getenv("DB_PORT"); envPort != "" {
 		if parsedPort, err := strconv.Atoi(envPort); err == nil {
 			port = parsedPort
@@ -23,17 +23,16 @@ func Database() *sql.DB {
 	password := os.Getenv("DB_PASSWORD")
 	dsn := fmt.Sprintf(
 		"postgres://%s:%s@%s:%d/%s?sslmode=disable",
-		config.DB.User,
+		cfg.DB.User,
 		password,
-		config.DB.Host,
+		cfg.DB.Host,
 		port,
-		config.DB.Name,
+		cfg.DB.Name,
 	)
 	db, err := sql.Open("postgres", dsn)
 	if err != nil {
 		log.Fatal(err)
 	}
-
 	if err = db.Ping(); err != nil {
 		log.Fatal("failed to ping database:", err)
 	}

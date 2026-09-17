@@ -1,10 +1,13 @@
-package main
+package handlers
 
 import (
 	"database/sql"
 	"errors"
 	"fmt"
 	"strconv"
+
+	"orderApi/internal/models"
+	"orderApi/internal/validation"
 
 	"github.com/gin-gonic/gin"
 )
@@ -23,9 +26,9 @@ func SortOrdersByUser(db *sql.DB) gin.HandlerFunc {
 			return
 		}
 		defer rows.Close()
-		var orders []Order
+		var orders []models.Order
 		for rows.Next() {
-			var order Order
+			var order models.Order
 			if err := rows.Scan(
 				&order.ID,
 				&order.UserID,
@@ -63,9 +66,9 @@ func SortOrdersByStatus(db *sql.DB) gin.HandlerFunc {
 			return
 		}
 		defer rows.Close()
-		var orders []Order
+		var orders []models.Order
 		for rows.Next() {
-			var order Order
+			var order models.Order
 			if err := rows.Scan(
 				&order.ID,
 				&order.UserID,
@@ -90,7 +93,7 @@ func SortOrdersByStatus(db *sql.DB) gin.HandlerFunc {
 }
 
 // health is a handler that returns a 200 OK response to indicate the server is healthy.
-func health() gin.HandlerFunc {
+func Health() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"message": "server is healthy",
@@ -100,7 +103,7 @@ func health() gin.HandlerFunc {
 
 func CreateOrder(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var order Order
+		var order models.Order
 
 		if err := c.ShouldBindJSON(&order); err != nil {
 			c.JSON(400, gin.H{
@@ -116,7 +119,7 @@ func CreateOrder(db *sql.DB) gin.HandlerFunc {
 			return
 		}
 
-		if !validStatus(order.Status) {
+		if !validation.ValidStatus(order.Status) {
 			c.JSON(400, gin.H{
 				"error": "invalid status",
 			})
@@ -146,7 +149,7 @@ func GetOrder(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		id := c.Param("id")
 
-		var order Order
+		var order models.Order
 
 		err := db.QueryRow(
 			"SELECT id, user_id, status, created_at FROM orders WHERE id = $1",
@@ -215,9 +218,9 @@ func GetOrders(db *sql.DB) gin.HandlerFunc {
 			return
 		}
 		defer rows.Close()
-		var orders []Order
+		var orders []models.Order
 		for rows.Next() {
-			var order Order
+			var order models.Order
 
 			if err := rows.Scan(&order.ID, &order.UserID, &order.Status, &order.CreatedAt); err != nil {
 				c.JSON(500, gin.H{
@@ -280,7 +283,7 @@ func UpdateOrderStatus(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		id := c.Param("id")
 
-		var req UpdateOrderStatusRequest
+		var req models.UpdateOrderStatusRequest
 		if err := c.ShouldBindJSON(&req); err != nil {
 			c.JSON(400, gin.H{
 				"error": fmt.Errorf("failed to bind JSON: %w", err),
@@ -288,7 +291,7 @@ func UpdateOrderStatus(db *sql.DB) gin.HandlerFunc {
 			return
 		}
 
-		if !validStatus(req.Status) {
+		if !validation.ValidStatus(req.Status) {
 			c.JSON(400, gin.H{
 				"error": "invalid status",
 			})

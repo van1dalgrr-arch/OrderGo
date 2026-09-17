@@ -1,6 +1,6 @@
-package main
+package validation
 
-func validStatus(status string) bool {
+func ValidStatus(status string) bool {
 	switch status {
 	case "pending", "paid", "processing", "shipped", "completed", "cancelled":
 		return true

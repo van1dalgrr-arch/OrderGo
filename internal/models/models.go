@@ -1,4 +1,4 @@
-package main
+package models
 
 import (
 	"time"
@@ -13,4 +13,9 @@ type Order struct {
 
 type UpdateOrderStatusRequest struct {
 	Status string `json:"status"`
+}
+
+type RedisConfig struct {
+	Host string `yaml:"host"`
+	Port int    `yaml:"port"`
 }

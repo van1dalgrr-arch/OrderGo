@@ -1,8 +1,9 @@
-package main
+package config
 
 import (
 	"log"
 	"os"
+	"strconv"
 
 	"gopkg.in/yaml.v3"
 )
@@ -10,6 +11,7 @@ import (
 type Config struct {
 	Server ServerConfig `yaml:"server"`
 	DB     DBConfig     `yaml:"db"`
+	Redis  RedisConfig  `yaml:"redis"`
 }
 
 type ServerConfig struct {
@@ -21,6 +23,11 @@ type DBConfig struct {
 	Port int    `yaml:"port"`
 	User string `yaml:"user"`
 	Name string `yaml:"name"`
+}
+
+type RedisConfig struct {
+	Host string `yaml:"host"`
+	Port int    `yaml:"port"`
 }
 
 func LoadConfig() Config {
@@ -46,6 +53,24 @@ func LoadConfig() Config {
 
 	if name := os.Getenv("DB_NAME"); name != "" {
 		config.DB.Name = name
+	}
+
+	if port := os.Getenv("DB_PORT"); port != "" {
+		portInt, err := strconv.Atoi(port)
+		if err == nil {
+			config.DB.Port = portInt
+		}
+	}
+
+	if host := os.Getenv("REDIS_HOST"); host != "" {
+		config.Redis.Host = host
+	}
+
+	if port := os.Getenv("REDIS_PORT"); port != "" {
+		portInt, err := strconv.Atoi(port)
+		if err == nil {
+			config.Redis.Port = portInt
+		}
 	}
 	return config
 }
