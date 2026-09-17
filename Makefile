@@ -5,11 +5,27 @@ start:
 stop:
 	docker stop order-postgres
 
+run:
+	go run ./cmd/internal/models
+
 test:
 	go test ./...
 
 build:
 	go build ./...
 
-run:
-	go run ./cmd/internal/models
+up:
+	docker compose --env-file .env -f deploy/docker-compose.yml up --build -d
+
+down:
+	docker compose --env-file .env -f deploy/docker-compose.yml down
+
+logs:
+	docker compose --env-file .env -f deploy/docker-compose.yml logs -f
+
+
+stat:
+	git status
+
+base:
+	git add . && git commit -m "$(msg)" && git push

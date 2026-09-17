@@ -11,10 +11,9 @@ import (
 )
 
 func Database() *sql.DB {
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file:", err)
-	}
+	_ = godotenv.Load()
+
+		
 
 	// Build the PostgreSQL connection string from environment variables.
 	dsn := fmt.Sprintf(

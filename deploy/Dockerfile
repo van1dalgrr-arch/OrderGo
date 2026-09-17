@@ -9,12 +9,12 @@ COPY . .
 
 RUN go build -o order-api ./cmd/internal/models
 
+
 FROM debian:bookworm-slim
 
 WORKDIR /app
 
 COPY --from=builder /app/order-api .
-
-EXPOSE 8080
+COPY --from=builder /app/config.yml .
 
 CMD ["./order-api"]

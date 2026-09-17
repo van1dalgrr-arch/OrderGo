@@ -9,6 +9,15 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// health is a handler that returns a 200 OK response to indicate the server is healthy.
+func health() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.JSON(200, gin.H{
+			"message": "server is healthy",
+		})
+	}
+}
+
 func CreateOrder(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var order Order
