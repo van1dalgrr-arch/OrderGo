@@ -26,15 +26,26 @@ type DBConfig struct {
 func LoadConfig() Config {
 	data, err := os.ReadFile("config.yml")
 	if err != nil {
-		panic(err)
+		log.Fatal("failed to read config.yml:", err)
 	}
 
 	var config Config
 
 	err = yaml.Unmarshal(data, &config)
 	if err != nil {
-		log.Println("failed to unmarshal config:", err)
+		log.Fatal("failed to unmarshal config.yml:", err)
 	}
 
+	if host := os.Getenv("DB_HOST"); host != "" {
+		config.DB.Host = host
+	}
+
+	if user := os.Getenv("DB_USER"); user != "" {
+		config.DB.User = user
+	}
+
+	if name := os.Getenv("DB_NAME"); name != "" {
+		config.DB.Name = name
+	}
 	return config
 }
