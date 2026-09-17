@@ -1,26 +1,31 @@
-# Binaries
+# Go binaries
 *.exe
 *.exe~
 *.dll
 *.so
 *.dylib
-
-# Test binaries
 *.test
 
-# Coverage
+# Local Go build binary
+/models
+/bin/
+
+# Go build / coverage
 *.out
 coverage.*
+coverage.out
 
 # Go workspace
 go.work
 go.work.sum
 
 # Build output
-/bin/
 /build/
 /dist/
+/tmp/
+/temp/
 
+# IDEs / Editors
 .idea/
 .vscode/
 *.swp
@@ -31,12 +36,23 @@ go.work.sum
 
 # Logs
 *.log
+logs/
 
-# Environment variables / secrets
+# Environment / secrets
 .env
 .env.*
 !.env.example
 
+# Docker
+docker-compose.override.yml
+
 # Temporary files
-tmp/
-temp/
+*.tmp
+*.temp
+*.bak
+*~
+
+# OS / editor metadata
+.Trashes
+.AppleDouble
+.LSOverride
