@@ -9,7 +9,45 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// TODO: add new func: sort orders by user
+func SortOrdersByUser(db *sql.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		userID := c.Param("user_id")
+		rows, err := db.Query(
+			"SELECT id, user_id, status, created_at FROM orders WHERE user_id = $1",
+			userID,
+		)
+		if err != nil {
+			c.JSON(500, gin.H{
+				"error": fmt.Errorf("failed to get orders by user: %w", err).Error(),
+			})
+			return
+		}
+		defer rows.Close()
+		var orders []Order
+		for rows.Next() {
+			var order Order
+			if err := rows.Scan(
+				&order.ID,
+				&order.UserID,
+				&order.Status,
+				&order.CreatedAt,
+			); err != nil {
+				c.JSON(500, gin.H{
+					"error": fmt.Errorf("failed to scan order: %w", err).Error(),
+				})
+				return
+			}
+			orders = append(orders, order)
+		}
+		if err := rows.Err(); err != nil {
+			c.JSON(500, gin.H{
+				"error": fmt.Errorf("failed to iterate orders: %w", err).Error(),
+			})
+			return
+		}
+		c.JSON(200, orders)
+	}
+}
 
 func SortOrdersByStatus(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -25,13 +63,15 @@ func SortOrdersByStatus(db *sql.DB) gin.HandlerFunc {
 			return
 		}
 		defer rows.Close()
-
 		var orders []Order
-
 		for rows.Next() {
 			var order Order
-
-			if err := rows.Scan(&order.ID, &order.UserID, &order.Status, &order.CreatedAt); err != nil {
+			if err := rows.Scan(
+				&order.ID,
+				&order.UserID,
+				&order.Status,
+				&order.CreatedAt,
+			); err != nil {
 				c.JSON(500, gin.H{
 					"error": fmt.Errorf("failed to scan order: %w", err).Error(),
 				})
@@ -273,7 +313,7 @@ func UpdateOrderStatus(db *sql.DB) gin.HandlerFunc {
 			})
 			return
 		}
-		
+
 		if rowsAffected == 0 {
 			c.JSON(404, gin.H{
 				"error": "order not found",
