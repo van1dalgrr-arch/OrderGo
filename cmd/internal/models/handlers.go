@@ -9,6 +9,46 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// TODO: add new func: sort orders by user
+
+func SortOrdersByStatus(db *sql.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		status := c.Param("status")
+		rows, err := db.Query(
+			"SELECT id, user_id, status, created_at FROM orders WHERE status = $1",
+			status,
+		)
+		if err != nil {
+			c.JSON(500, gin.H{
+				"error": fmt.Errorf("failed to get orders by status: %w", err).Error(),
+			})
+			return
+		}
+		defer rows.Close()
+
+		var orders []Order
+
+		for rows.Next() {
+			var order Order
+
+			if err := rows.Scan(&order.ID, &order.UserID, &order.Status, &order.CreatedAt); err != nil {
+				c.JSON(500, gin.H{
+					"error": fmt.Errorf("failed to scan order: %w", err).Error(),
+				})
+				return
+			}
+			orders = append(orders, order)
+		}
+		if err := rows.Err(); err != nil {
+			c.JSON(500, gin.H{
+				"error": fmt.Errorf("failed to iterate orders: %w", err).Error(),
+			})
+			return
+		}
+		c.JSON(200, orders)
+	}
+}
+
 // health is a handler that returns a 200 OK response to indicate the server is healthy.
 func health() gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -124,7 +164,7 @@ func GetOrders(db *sql.DB) gin.HandlerFunc {
 
 		offset := (pageInt - 1) * limitInt
 		rows, err := db.Query(
-			"SELECT id, user_id, status FROM orders ORDER BY id LIMIT $1 OFFSET $2",
+			"SELECT id, user_id, status, created_at FROM orders ORDER BY id LIMIT $1 OFFSET $2",
 			limitInt,
 			offset,
 		)
@@ -138,11 +178,8 @@ func GetOrders(db *sql.DB) gin.HandlerFunc {
 		var orders []Order
 		for rows.Next() {
 			var order Order
-			if err := rows.Scan(
-				&order.ID,
-				&order.UserID,
-				&order.Status,
-			); err != nil {
+
+			if err := rows.Scan(&order.ID, &order.UserID, &order.Status, &order.CreatedAt); err != nil {
 				c.JSON(500, gin.H{
 					"error": fmt.Errorf("failed to scan order: %w", err),
 				})
@@ -168,7 +205,7 @@ func DeleteOrder(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		id := c.Param("id")
 
-		_, err := db.Exec(
+		result, err := db.Exec(
 			"DELETE FROM orders WHERE id = $1",
 			id,
 		)
@@ -178,9 +215,23 @@ func DeleteOrder(db *sql.DB) gin.HandlerFunc {
 			})
 			return
 		}
+		rowsAffected, err := result.RowsAffected()
+		if err != nil {
+			c.JSON(500, gin.H{
+				"error": fmt.Errorf("failed to get rows affected: %w", err),
+			})
+			return
+		}
+
+		if rowsAffected == 0 {
+			c.JSON(404, gin.H{
+				"error": "order not found",
+			})
+			return
+		}
 
 		c.JSON(200, gin.H{
-			"message": "order has been deleted",
+			"message": "order deleted successfully",
 		})
 	}
 }
@@ -222,7 +273,7 @@ func UpdateOrderStatus(db *sql.DB) gin.HandlerFunc {
 			})
 			return
 		}
-
+		
 		if rowsAffected == 0 {
 			c.JSON(404, gin.H{
 				"error": "order not found",

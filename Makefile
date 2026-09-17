@@ -1,10 +1,3 @@
-start:
-	docker start order-postgres
-	go run ./cmd/internal/models
-
-stop:
-	docker stop order-postgres
-
 run:
 	go run ./cmd/internal/models
 
@@ -29,3 +22,9 @@ stat:
 
 base:
 	git add . && git commit -m "$(msg)" && git push
+
+form:
+	gofmt -w .
+
+db:
+	docker compose --env-file .env -f deploy/docker-compose.yml exec postgres psql -U postgres -d orderapi

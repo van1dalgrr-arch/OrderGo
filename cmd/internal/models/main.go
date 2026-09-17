@@ -18,6 +18,7 @@ func main() {
 	r := gin.Default()
 
 	r.GET("/health", health())
+	r.GET("/orders/status/:status", SortOrdersByStatus(db))
 	r.POST("/orders", CreateOrder(db))
 	r.GET("/orders/:id", GetOrder(db))
 	r.GET("/orders", GetOrders(db))
