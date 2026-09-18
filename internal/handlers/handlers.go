@@ -2,10 +2,13 @@ package handlers
 
 import (
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strconv"
+	"time"
 
+	"orderApi/internal/cache"
 	"orderApi/internal/models"
 	"orderApi/internal/validation"
 
@@ -100,32 +103,40 @@ func Health() gin.HandlerFunc {
 		})
 	}
 }
-
 func CreateOrder(db *sql.DB) gin.HandlerFunc {
+
 	return func(c *gin.Context) {
 		var order models.Order
-
 		if err := c.ShouldBindJSON(&order); err != nil {
 			c.JSON(400, gin.H{
-				"error": err.Error(),
+				"error": fmt.Errorf("failed to bind JSON: %w", err).Error(),
 			})
 			return
 		}
-
-		if order.ID == "" || order.UserID == "" || order.Status == "" {
+		if order.ID == "" {
 			c.JSON(400, gin.H{
-				"error": "id, user_id, and status are required",
+				"error": "order ID is required",
 			})
 			return
 		}
-
+		if order.UserID == "" {
+			c.JSON(400, gin.H{
+				"error": "user ID is required",
+			})
+			return
+		}
+		if order.Status == "" {
+			c.JSON(400, gin.H{
+				"error": "status is required",
+			})
+			return
+		}
 		if !validation.ValidStatus(order.Status) {
 			c.JSON(400, gin.H{
 				"error": "invalid status",
 			})
 			return
 		}
-
 		_, err := db.Exec(
 			"INSERT INTO orders (id, user_id, status) VALUES ($1, $2, $3)",
 			order.ID,
@@ -138,20 +149,30 @@ func CreateOrder(db *sql.DB) gin.HandlerFunc {
 			})
 			return
 		}
-
-		c.JSON(201, gin.H{
-			"message": "order has been created",
-		})
+		c.JSON(201, order)
 	}
+
 }
 
-func GetOrder(db *sql.DB) gin.HandlerFunc {
+func GetOrder(db *sql.DB, redis *cache.Redis) gin.HandlerFunc {
+
 	return func(c *gin.Context) {
 		id := c.Param("id")
-
+		cachedOrder, err := redis.Get("order:" + id)
+		if err == nil {
+			var order models.Order
+			err = json.Unmarshal([]byte(cachedOrder), &order)
+			if err != nil {
+				c.JSON(500, gin.H{
+					"error": fmt.Errorf("failed to unmarshal cached order: %w", err).Error(),
+				})
+				return
+			}
+			c.JSON(200, order)
+			return
+		}
 		var order models.Order
-
-		err := db.QueryRow(
+		err = db.QueryRow(
 			"SELECT id, user_id, status, created_at FROM orders WHERE id = $1",
 			id,
 		).Scan(
@@ -160,25 +181,36 @@ func GetOrder(db *sql.DB) gin.HandlerFunc {
 			&order.Status,
 			&order.CreatedAt,
 		)
-
 		if errors.Is(err, sql.ErrNoRows) {
 			c.JSON(404, gin.H{
 				"error": "order not found",
 			})
 			return
 		}
-
 		if err != nil {
 			c.JSON(500, gin.H{
-				"error": fmt.Errorf("failed to get order: %w", err),
+				"error": fmt.Errorf("failed to get order: %w", err).Error(),
 			})
 			return
 		}
-
+		data, err := json.Marshal(order)
+		if err != nil {
+			c.JSON(500, gin.H{
+				"error": fmt.Errorf("failed to marshal order: %w", err).Error(),
+			})
+			return
+		}
+		err = redis.Set("order:"+id, string(data), 10*time.Minute)
+		if err != nil {
+			c.JSON(500, gin.H{
+				"error": fmt.Errorf("failed to cache order: %w", err).Error(),
+			})
+			return
+		}
 		c.JSON(200, order)
 	}
-}
 
+}
 func GetOrders(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		page := c.Query("page")
