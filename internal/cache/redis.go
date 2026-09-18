@@ -3,7 +3,9 @@ package cache
 import (
 	"context"
 
+	"encoding/json"
 	"fmt"
+	"log/slog"
 	"os"
 	"time"
 
@@ -53,6 +55,33 @@ func (r *Redis) Delete(key string) error {
 	err := r.client.Del(context.Background(), key).Err()
 
 	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *Redis) SetJSON(key string, value any, expiration time.Duration) error {
+	jsonValue, err := json.Marshal(value)
+	if err != nil {
+		return err
+	}
+	err = r.client.Set(context.Background(), key, jsonValue, expiration).Err()
+	if err != nil {
+		slog.Error("failed to set json", "key", key, "err", err)
+		return err
+	}
+	return nil
+}
+
+func (r *Redis) GetJSON(key string, dest any) error {
+	jsonValue, err := r.client.Get(context.Background(), key).Result()
+	if err != nil {
+		slog.Error("failed to get json", "key", key, "err", err)
+		return err
+	}
+	err = json.Unmarshal([]byte(jsonValue), dest)
+	if err != nil {
+		slog.Error("failed to unmarshal json", "key", key, "err", err)
 		return err
 	}
 	return nil
