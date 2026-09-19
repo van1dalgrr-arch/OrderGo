@@ -1,5 +1,7 @@
+.PHONY: run test build up down logs stat base form db
+
 run:
-	go run ./cmd/internal/models
+	go run ./cmd/api
 
 test:
 	go test ./...
@@ -15,7 +17,6 @@ down:
 
 logs:
 	docker compose --env-file .env -f deploy/docker-compose.yml logs -f
-
 
 stat:
 	git status
