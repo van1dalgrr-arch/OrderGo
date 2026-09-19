@@ -6,9 +6,7 @@ import (
 	"log/slog"
 
 	"orderApi/internal/config"
-	"orderApi/internal/handler"
-
-	"github.com/gin-gonic/gin"
+	"orderApi/internal/server"
 )
 
 func main() {
@@ -19,9 +17,7 @@ func main() {
 	}
 	slog.Info("configuration has been loaded", "port", cfg.Server.Port)
 
-	r := gin.Default()
-
-	r.GET("/health", handler.Health())
+	r := server.New()
 
 	if err := r.Run(fmt.Sprintf(":%d", cfg.Server.Port)); err != nil {
 		log.Fatal(err)
