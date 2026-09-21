@@ -1,228 +1,88 @@
-🧾 Order API
+OrderAPI
 
-Backend API для управления заказами, написанный на Go + Gin.
+A small REST API for working with orders, written in Go.
 
-Проект развивается от простого in-memory API к полноценной системе заказов и оплаты с PostgreSQL и Telegram-ботом.
+This is a learning backend project where I am gradually building a proper application structure with configuration, HTTP server, PostgreSQL, Redis, Docker, and separate application layers.
 
-⸻
+Stack
 
-🛠 Stack
-
-Technology	Purpose
-🐹 Go	Backend
-🌐 Gin	HTTP framework
-🗺️ Map	Temporary in-memory storage
-🐳 Docker	Containerization
-💳 Stripe	Planned payment integration
-🐘 PostgreSQL	Planned database
-🤖 Telegram Bot	Planned interface
-
-⸻
-
-📊 Current Progress
-
-███████████████░░░░░░░░ 50%
-
-API
-
-* HTTP server
-* Health check
-* Create order
-* Get order by ID
-* Delete order
-* HTTP error handling
-* Payment flow
-* Order status management
+* Go
+* Gin
 * PostgreSQL
-* Telegram bot
+* sqlx
+* Redis
+* Docker / Docker Compose
+* YAML
 
-⸻
+Project structure
 
-🏗️ Current Architecture
+internal/
+├── config/       # application configuration
+├── domain/       # main models
+├── handler/      # HTTP handlers
+├── repository/   # database access
+├── server/       # HTTP server and routes
+└── service/      # business logic
 
-flowchart TD
-Client[Client]
-Gin[Gin HTTP Server]
-Create[Create Order]
-Get[Get Order]
-Delete[Delete Order]
-Storage[(In-Memory Map)]
-Client --> Gin
-Gin --> Create
-Gin --> Get
-Gin --> Delete
-Create --> Storage
-Get --> Storage
-Delete --> Storage
+Current state
 
-⸻
+* YAML configuration
+* HTTP server with Gin
+* GET /health
+* Order domain model
+* OrderRepository interface
+* PostgreSQL repository with sqlx
+* Creating orders in PostgreSQL
+* Getting an order by ID
 
-📦 Order Lifecycle
+The project is still in development.
 
-Планируемая логика заказа:
+Running locally
 
-stateDiagram-v2
-[*] --> New
-New --> Paid
-New --> Cancelled
-Paid --> [*]
-Cancelled --> [*]
+Run the API:
 
-⸻
+make run
 
-🔌 API
+Run tests:
 
-Health Check
+make test
 
-GET /health
+Build the project:
 
-Response:
+make build
 
-{
-"status": "ok"
-}
+Format the code:
 
-Create Order
+make form
 
-POST /orders
+Docker
 
-Request:
+Start the project:
 
-{
-"user_id": "123",
-"amount": 1999,
-"status": "new"
-}
+make up
 
-Response:
+Stop the project:
 
-{
-"id": "1",
-"user_id": "123",
-"amount": 1999,
-"status": "new"
-}
+make down
 
-amount хранится как int в минимальных денежных единицах. float для денег не используется из-за проблем с точностью представления.
+View logs:
 
-Get Order
+make logs
 
-GET /orders/:id
+Open PostgreSQL:
 
-Example:
+make db
 
-GET /orders/1
+TODO
 
-Delete Order
+* Finish the order repository
+* Add the service layer
+* Add CRUD endpoints
+* Finish PostgreSQL integration
+* Add database migrations
+* Add Redis
+* Add tests
+* Finish Dockerfile and Docker Compose
+* Add basic CI/CD
 
-DELETE /orders/:id
-
-Response:
-
-{
-"message": "order has been deleted"
-}
-
-⸻
-
-🚀 Run Locally
-
-Clone the repository:
-
-git clone <repository-url>
-cd order-api
-
-Install dependencies:
-
-go mod download
-
-Run:
-
-go run .
-
-Server:
-
-http://localhost:8080
-
-⸻
-
-🐳 Docker
-
-Build:
-
-docker build -t order-api .
-
-Run:
-
-docker run -p 8080:8080 order-api
-
-⸻
-
-🗺️ Roadmap
-
-flowchart LR
-A[Go + Gin] --> B[Orders API]
-B --> C[Payment System]
-C --> D[PostgreSQL]
-D --> E[Telegram Bot]
-E --> F[Docker + CI/CD]
-
-Phase 1 — Core API
-
-* Gin server
-* Order model
-* In-memory storage
-* Create / Read / Delete
-
-Phase 2 — Payments
-
-* POST /orders/:id/pay
-* Payment service
-* Stripe test integration
-* Payment status
-* Order state validation
-
-Phase 3 — Database
-
-* PostgreSQL
-* Database schema
-* Repository layer
-* Migrations
-* Replace in-memory storage
-
-Phase 4 — Telegram
-
-* Telegram bot
-* Order creation
-* Order lookup
-* Payment button
-* Payment notifications
-
-Phase 5 — Infrastructure
-
-* Dockerfile
-* Docker Compose
-* CI/CD
-* Reverse proxy
-* Deployment
-
-⸻
-
-🎯 Project Goal
-
-Цель проекта — не просто сделать CRUD, а постепенно собрать полноценный backend:
-
-        Telegram
-           │
-           ▼
-      ┌─────────┐
-      │ Go API  │
-      │  Gin    │
-      └────┬────┘
-           │
-     ┌─────┴─────┐
-     ▼           ▼
-PostgreSQL    Payment
-Provider
-
-Проект создаётся как практическая работа с Go, HTTP, бизнес-логикой, платежами, базами данных и инфраструктурой.
+The project is being built step by step, so some parts are not implemented yet.
