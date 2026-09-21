@@ -22,7 +22,7 @@ stat:
 	@git status
 
 base:
-	git add . && git commit -m "$(msg)" && git push
+	@git add . && git commit -m "$(msg)" && git push
 
 form:
 	@gofmt -w .
