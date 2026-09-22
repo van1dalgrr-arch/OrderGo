@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 
 	"github.com/jmoiron/sqlx"
@@ -59,4 +60,19 @@ func (r *PostgresOrderRepository) GetByID(ctx context.Context, id string) (*doma
 		return nil, err
 	}
 	return &order, nil
+}
+
+func (r *PostgresOrderRepository) List(ctx context.Context) ([]domain.Order, error) {
+	orders := []domain.Order{}
+
+	err := r.db.SelectContext(
+		ctx,
+		&orders,
+		"SELECT id, user_id, status FROM orders",
+	)
+
+	if err != nil {
+		return nil, fmt.Errorf("list order: %w", err)
+	}
+	return orders, nil
 }
